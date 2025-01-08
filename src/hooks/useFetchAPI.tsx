@@ -1,16 +1,20 @@
-import { Category, Dashboard, Transaction } from "../services/api-types.ts";
+import { Category, Dashboard, FinancialEvolution, Transaction } from "../services/api-types.ts";
 import { APIService } from "../services/api.ts";
 import { formatDate } from "../utils/format-date.ts";
-import { CreateCategoryData, CreateTransactionData, TransactionFilterData } from "../validators/types.ts";
+import { CreateCategoryData, CreateTransactionData, financialEvolutionFilterData, TransactionFilterData } from "../validators/types.ts";
 import { createContext, ReactNode, useCallback, useContext, useState } from "react";
 
 interface FetchAPIProps {
     dashboard: Dashboard
+    financialEvolution: FinancialEvolution[]
     createCategory: (data: CreateCategoryData) => Promise<void>
     createTransaction: (data: CreateTransactionData) => Promise<void>
     fetchCategories: () => Promise<void>
     fetchTransactions: (filters: TransactionFilterData) => Promise<void>
     fetchDashboard: (filters: Pick<TransactionFilterData, 'beginDate' | 'endDate'>
+    ) => Promise<void>
+    fetchFinancialEvolution: (
+        filters: financialEvolutionFilterData
     ) => Promise<void>
     categories: Category[]
     transactions: Transaction[]
@@ -26,6 +30,7 @@ export function FetchAPIProvider({ children }: FetchAPIProviderProps) {
     const [categories, setCategories] = useState<Category[]>([])
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [dashboard, setDashboard] = useState<Dashboard>({} as Dashboard)
+    const [financialEvolution, setFinancialEvolution] = useState<FinancialEvolution[] > ([])
 
 
 
@@ -33,7 +38,7 @@ export function FetchAPIProvider({ children }: FetchAPIProviderProps) {
         await APIService.createTransaction({
             ...data,
             date: formatDate(data.date),
-            amount: Number(data.amount.replace(/[^0-9]/g,''))
+            amount: Number(data.amount.replace(/[^0-9]/g, ''))
 
         })
     }, [])
@@ -59,10 +64,10 @@ export function FetchAPIProvider({ children }: FetchAPIProviderProps) {
     }, [])
 
     const fetchDashboard = useCallback(
-        async({
-            beginDate, 
+        async ({
+            beginDate,
             endDate
-        }:Pick<TransactionFilterData, 'beginDate' | 'endDate'>) => {
+        }: Pick<TransactionFilterData, 'beginDate' | 'endDate'>) => {
             const dashboard = await APIService.getDashboard({
                 beginDate: formatDate(beginDate),
                 endDate: formatDate(endDate)
@@ -73,17 +78,27 @@ export function FetchAPIProvider({ children }: FetchAPIProviderProps) {
         []
     )
 
+    const fetchFinancialEvolution = useCallback(
+        async ({ year }: financialEvolutionFilterData) => {
+            const financialEvolution = await APIService.getFinancialEvolution({
+                year: year.padStart(4, '0')
+            })
+            setFinancialEvolution(financialEvolution)
+        }, [])
+
     return (
         <FetchAPIContext.Provider
-            value={{ 
-                categories, 
-                transactions, 
-                createCategory, 
+            value={{
+                categories,
+                transactions,
+                createCategory,
                 fetchTransactions,
-                fetchCategories, 
-                createTransaction, 
+                fetchCategories,
+                createTransaction,
                 fetchDashboard,
-                dashboard 
+                dashboard,
+                fetchFinancialEvolution,
+                financialEvolution
             }}
         >
             {children}
@@ -91,6 +106,6 @@ export function FetchAPIProvider({ children }: FetchAPIProviderProps) {
     )
 }
 
-export function useFetchAPI(): FetchAPIProps{
+export function useFetchAPI(): FetchAPIProps {
     return useContext(FetchAPIContext)
 }

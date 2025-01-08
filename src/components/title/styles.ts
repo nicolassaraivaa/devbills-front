@@ -10,11 +10,19 @@ export const Container = styled.div`
         font-size:1.25rem;
         color: ${theme.colors.white};
         font-weight: 700;
+
+        @media (max-width: 640px){
+            text-align: center;
+        }
     }
 
     span{
         font-size: 0.875rem;
         color: ${theme.colors.neutral};
         font-weight: 400;
+    }
+
+    @media (max-width: 640px){
+        text-align: center;
     }
 `

@@ -44,7 +44,7 @@ export type Expense = {
     _id: string 
     title: string
     amount: number
-    coloe: string
+    color: string
 }
 
 export type Dashboard = {
@@ -55,4 +55,15 @@ export type Dashboard = {
 export type DashboardFilters = {
     beginDate:string
     endDate: string
+}
+
+export type FinancialEvolutionFilters = {
+    year: string
+}
+
+export type FinancialEvolution = {
+    _id: [number, number] 
+    incomes: number
+    expenses: number
+    balance: number
 }

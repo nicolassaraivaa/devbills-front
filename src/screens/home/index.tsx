@@ -8,14 +8,14 @@ import { Card } from "../../components/card";
 import { Transaction } from "../../components/transaction";
 import { CreateCategoryDialog } from "../../components/create-category-dialog";
 import { CreateTransactionDialog } from "../../components/create-transaction-dialog";
-import { CategoriesPieChart, CategoryProps } from "../../components/categories-pie-chart";
+import { CategoriesPieChart } from "../../components/categories-pie-chart";
 import { FinancialEvolutionBartChart } from "../../components/financial-evolution-bar-chart";
 import { useForm } from "react-hook-form";
-import { TransactionFilterData } from "../../validators/types.ts";
+import { financialEvolutionFilterData, TransactionFilterData } from "../../validators/types.ts";
 import dayjs from "dayjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transactionsFilterSchema } from "../../validators/schemas.ts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useFetchAPI } from "../../hooks/useFetchAPI.tsx";
 
 export function Home() {
@@ -29,36 +29,68 @@ export function Home() {
         resolver: zodResolver(transactionsFilterSchema)
     })
 
-    const { transactions, dashboard, fetchDashboard,fetchTransactions } = useFetchAPI()
+    const financialEvolutionFilterForm = useForm<financialEvolutionFilterData>({
+        defaultValues: {
+            year: dayjs().get('year').toString()
+        },
+    })
+
+    const {
+        transactions,
+        dashboard,
+        fetchDashboard,
+        fetchTransactions,
+        financialEvolution,
+        fetchFinancialEvolution
+    } = useFetchAPI()
 
     useEffect(() => {
-        const {beginDate, endDate} = transactionsFilterForm.getValues()
-        fetchDashboard({beginDate, endDate})
+        const { beginDate, endDate } = transactionsFilterForm.getValues()
+
+        fetchDashboard({ beginDate, endDate })
         fetchTransactions(transactionsFilterForm.getValues())
-    }, [fetchTransactions, transactionsFilterForm])
+        fetchFinancialEvolution(financialEvolutionFilterForm.getValues())
+    }, [
+        fetchTransactions,
+        transactionsFilterForm,
+        fetchDashboard,
+        fetchFinancialEvolution,
+        financialEvolutionFilterForm
+    ])
 
-    const [selectedCategory, setSelectedCategory] = useState<CategoryProps | null>(null)
+    {/*const [selectedCategory, setSelectedCategory] = 
+    useState<CategoryProps | null>(null)
 
-    const handleSelectedCategory = useCallback(({ color, id, title }: CategoryProps) => {
-        setSelectedCategory({ color, id, title })
-        transactionsFilterForm.setValue('categoryId', id)
-    }, [transactionsFilterForm])
+    const handleSelectCategory = useCallback(
+        async ({ id, title, color }: CategoryProps) => {
+            setSelectedCategory({id, title,  color})
+            transactionsFilterForm.setValue('categoryId', id)
+
+            await fetchTransactions(transactionsFilterForm.getValues())
+        },
+        [transactionsFilterForm, fetchTransactions]
+    )
 
     const handleDeselectCategory = useCallback(() => {
         setSelectedCategory(null)
         transactionsFilterForm.setValue('categoryId', '')
-    }, [transactionsFilterForm])
+    }, [transactionsFilterForm])*/}
 
     const onSubmitTransactions = useCallback(async (data: TransactionFilterData) => {
         await fetchTransactions(data)
     }, [fetchTransactions])
 
-    const onSubmitDashboard = useCallback(async (data:TransactionFilterData) => {
-        const {beginDate, endDate} = data
-        await fetchDashboard({beginDate, endDate})
+    const onSubmitDashboard = useCallback(async (data: TransactionFilterData) => {
+        const { beginDate, endDate } = data
+        await fetchDashboard({ beginDate, endDate })
         await fetchTransactions(data)
     }, [fetchDashboard, fetchTransactions])
 
+    const onSubmitFinancialEvolution = useCallback(
+        async (data: financialEvolutionFilterData) => {
+        await fetchFinancialEvolution(data)
+    }, [fetchFinancialEvolution]
+    )
 
     return (
         <>
@@ -93,21 +125,19 @@ export function Home() {
                                 error={transactionsFilterForm.formState.errors.endDate?.message}
                                 {...transactionsFilterForm.register('endDate')}
                             />
-                            <ButtonIcon onClick={transactionsFilterForm.handleSubmit(
-                                onSubmitTransactions,
-                            )} />
+                            <ButtonIcon onClick={transactionsFilterForm.handleSubmit(onSubmitDashboard)} />
                         </InputGroup>
                     </Filters>
                     <Balance>
-                        <Card 
-                            title="Saldo" 
+                        <Card
+                            title="Saldo"
                             amount={dashboard?.balance?.balance || 0} />
-                        <Card 
-                            title="Receitas" 
+                        <Card
+                            title="Receitas"
                             amount={dashboard?.balance?.incomes || 0} variant="incomes" />
-                        <Card 
-                            title="Gastos" 
-                            amount={dashboard?.balance?.expenses * -1 || 0} 
+                        <Card
+                            title="Gastos"
+                            amount={dashboard?.balance?.expenses * -1 || 0}
                             variant="expenses" />
                     </Balance>
                     <ChartContainer>
@@ -117,7 +147,9 @@ export function Home() {
                                 subtitle="Despesas por categoria no período" />
                         </Header>
                         <ChartContent>
-                            <CategoriesPieChart onClick={handleSelectedCategory} />
+                            <CategoriesPieChart
+                                expenses={dashboard.expenses}
+                            />
                         </ChartContent>
                     </ChartContainer>
 
@@ -134,12 +166,13 @@ export function Home() {
                                     variant="black"
                                     label="Ano"
                                     placeholder="aaaa"
+                                    {...financialEvolutionFilterForm.register('year')}
                                 />
-                                <ButtonIcon />
+                                <ButtonIcon onClick={financialEvolutionFilterForm.handleSubmit(onSubmitFinancialEvolution)}/>
                             </ChartAction>
                         </Header>
                         <ChartContent>
-                            <FinancialEvolutionBartChart />
+                            <FinancialEvolutionBartChart financialEvolution={financialEvolution} />
                         </ChartContent>
                     </ChartContainer>
                 </Section>
